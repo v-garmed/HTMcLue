@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Clue Medieval — Anime & Magia + Mapa</title>
+
+<!-- Tipografías -->
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Crimson+Text:wght@400;600&display=swap" rel="stylesheet"/>
+
+<style>
+  :root{
+    --gold:#d4af37;
+    --ink:#f0e6d2;
+    --violet:#4c1a7a;
+    --violet-2:#7b1fa2;
+    --panel: rgba(0,0,0,.6);
+    --panel-2: rgba(25,25,30,.8);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:0; color:var(--ink);
+    font-family:'Crimson Text', serif;
+    background: url('https://i.pinimg.com/736x/49/7c/48/497c4810c1342febf33cb1172bc1c21f.jpg') center/cover no-repeat fixed;
+    overflow-x:hidden;
+  }
+  #overlay{
+    min-height:100vh; width:100%;
+    background: rgba(0,0,0,.78);
+    display:flex; align-items:center; justify-content:center;
+    padding:24px;
+  }
+  #game{
+    width:min(980px, 95vw);
+    border:3px solid var(--gold);
+    border-radius:16px;
+    padding:24px;
+    background:var(--panel);
+    box-shadow:0 0 18px var(--gold);
+    animation:pop .7s ease;
+  }
+  @keyframes pop{ from{transform:scale(.98); opacity:0} to{transform:scale(1); opacity:1} }
+  h1,h2{font-family:'Cinzel', serif; margin:8px 0}
+  h1{ font-size:2.4rem; text-align:center; color:var(--gold); text-shadow:2px 2px 6px #000; }
+  .sub{opacity:.9; text-align:center; margin-bottom:12px}
+  .grid{
+    display:grid; gap:16px;
+    grid-template-columns: 1fr;
+  }
+  @media(min-width:980px){
+    .grid{ grid-template-columns: 320px 1fr; }
+  }
+  .panel{
+    background:var(--panel-2);
+    border:1px solid var(--gold);
+    border-radius:12px; padding:14px;
+  }
+
+  /* Botones */
+  .btn{
+    display:inline-block; cursor:pointer; user-select:none;
+    background:var(--violet);
+    border:2px solid var(--gold);
+    color:#f5deb3; padding:12px 22px; margin:8px 10px;
+    font-family:'Cinzel', serif; font-size:18px;
+    border-radius:12px; transition:.22s ease;
+    box-shadow: 0 0 0 rgba(212,175,55,0);
+  }
+  .btn:hover{ background:var(--violet-2); transform: translateY(-1px); box-shadow:0 0 14px rgba(212,175,55,.35)}
+  .row-center{display:flex; flex-wrap:wrap; align-items:center; justify-content:center}
+
+  /* Log / texto */
+  #log{
+    min-height:240px; max-height:380px; overflow:auto;
+    padding:14px; white-space:pre-wrap; line-height:1.45em;
+    font-size:18px; border-radius:10px;
+    border:1px solid var(--gold); background:rgba(30,30,36,.8);
+  }
+  .line{opacity:0; transform:translateY(6px); animation:lineIn .35s forwards}
+  @keyframes lineIn{to{opacity:1; transform:translateY(0)}}
+
+  /* Portrait / diálogo */
+  .portrait-wrap{position:relative}
+  .portrait{
+    width:100%; max-width:300px; aspect-ratio:3/4;
+    border-radius:12px; overflow:hidden;
+    border:2px solid var(--gold); background:#000;
+    box-shadow:0 0 12px rgba(212,175,55,.25);
+  }
+  .portrait img{width:100%; height:100%; object-fit:cover; display:block}
+  .nameplate{
+    margin-top:10px; text-align:center; font-family:'Cinzel'; font-weight:700;
+    letter-spacing:.5px; color:var(--gold)
+  }
+
+  /* Menú y créditos */
+  #menuPrincipal{text-align:center}
+  #credits{ display:none; margin-top:10px }
+  footer{ margin-top:10px; text-align:center; opacity:.8; font-size:.95rem }
+
+  /* ======== MAPA PERGAMINO ======== */
+  #mapPanel{
+    position:relative; overflow:hidden;
+    background: #7a5e36 img('imagenes/MapaCastillo.png') center/cover no-repeat; /* textura pergamino */
+    border:2px solid var(--gold);
+    border-radius:12px; padding:0; min-height: 360px;
+  }
+  #mapInner{
+    position:relative; width:100%; height:0; padding-bottom:62%; /* relación 16:10 aprox */
+    background: url('imagenes/MapaCastillo.png') center/contain no-repeat; /* mapa dibujado */
+    filter: sepia(.22) contrast(1.05) brightness(1.05);
+  }
+  .poi{
+    position:absolute; width:42px; height:42px; border-radius:50%;
+    border:2px solid var(--gold); background: rgba(0,0,0,.4);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--ink); font-weight:700; cursor:pointer;
+    transition:.2s; box-shadow:0 0 0 rgba(212,175,55,0);
+  }
+  .poi:hover{ transform:scale(1.07); box-shadow:0 0 16px rgba(212,175,55,.75); }
+  .poi:after{
+    content: attr(data-title);
+    position:absolute; bottom: 54px; left:50%; transform:translateX(-50%);
+    padding:6px 10px; background:rgba(0,0,0,.7); border:1px solid var(--gold);
+    color:var(--ink); font-size:14px; border-radius:8px; white-space:nowrap;
+    opacity:0; pointer-events:none; transition:.2s;
+  }
+  .poi:hover:after{ opacity:1; }
+  .poi.visited{ background: rgba(0,0,0,.2); color:#aaa; border-color:#997c2f; box-shadow:none; }
+  .poi.visited:before{
+    content:"✓"; position:absolute; font-size:18px; color:var(--gold);
+    transform: translateY(-2px);
+  }
+
+  /* icons minimal (letras) dentro del punto */
+  .poi span{ pointer-events:none }
+</style>
+</head>
+<body>
+<div id="overlay">
+  <div id="game">
+    <!-- Menú principal -->
+    <div id="menuPrincipal">
+      <h1>⚔️ Clue Medieval</h1>
+      <p class="sub">Descubre al asesino antes del amanecer...</p>
+      <div class="row-center">
+        <button class="btn" id="btnJugar">Jugar</button>
+        <button class="btn" id="btnCred">Créditos</button>
+        <button class="btn" id="btnSalir">Salir</button>
+      </div>
+      <div id="credits" class="panel">
+        <h2>Créditos</h2>
+        <p><b>Dirección y guion:</b> Víctor García Medina</p>
+        <p><b>Arte:</b> Estilo anime inspirado en Fire Emblem</p>
+        <button class="btn" id="btnVolver">Volver</button>
+      </div>
+    </div>
+
+    <!-- Juego -->
+    <div id="contenido" style="display:none">
+      <h1>Investigación</h1>
+      <div class="grid">
+        <!-- Lado retrato -->
+        <div class="portrait-wrap">
+          <div class="portrait"><img id="portraitImg" alt="Retrato"/></div>
+          <div class="nameplate" id="nameplate">—</div>
+          <div class="row-center" id="portraitBtns"></div>
+        </div>
+
+        <!-- Lado panel/log/mapa -->
+        <div>
+          <!-- MAPA -->
+          <div id="mapPanel" class="panel" aria-label="Mapa del castillo">
+            <div id="mapInner">
+              <!-- Puntos de interés (posiciones porcentuales sobre el mapa) -->
+              <!-- Cuarto del Rey (arriba-centro) -->
+              <div class="poi" data-title="Cuarto del Rey" data-sala="Cuarto del Rey" style="left:50%; top:12%; transform:translate(-50%, -50%);">
+                <span>R</span>
+              </div>
+              <!-- Biblioteca (izquierda media) -->
+              <div class="poi" data-title="Biblioteca" data-sala="Biblioteca" style="left:20%; top:42%; transform:translate(-50%, -50%);">
+                <span>B</span>
+              </div>
+              <!-- Pasillo del Castillo (centro) -->
+              <div class="poi" data-title="Pasillo del Castillo" data-sala="Pasillo del Castillo" style="left:50%; top:48%; transform:translate(-50%, -50%);">
+                <span>P</span>
+              </div>
+              <!-- Cocina Real (derecha baja) -->
+              <div class="poi" data-title="Cocina Real" data-sala="Cocina Real" style="left:78%; top:68%; transform:translate(-50%, -50%);">
+                <span>C</span>
+              </div>
+              <!-- Laboratorio (izquierda baja) -->
+              <div class="poi" data-title="Laboratorio" data-sala="Laboratorio" style="left:26%; top:72%; transform:translate(-50%, -50%);">
+                <span>L</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="log" class="panel" aria-live="polite"></div>
+          <div class="row-center">
+            <button class="btn" id="btnPistas">Ver pistas</button>
+            <button class="btn" id="btnAcusar">Hacer acusación</button>
+            <button class="btn" id="btnReiniciar">Reiniciar</button>
+          </div>
+          <footer>© 2025 – Misterio del Castillo Real</footer>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Música y SFX -->
+<audio id="bgm" loop>
+  <source src="sonid/bgm.mp3" type="audio/mpeg">
+</audio>
+<audio id="sfxClick"><source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_3c4647e1b3.mp3?filename=magic-portal-143080.mp3" type="audio/mpeg"></audio>
+<audio id="sfxReveal"><source src="https://cdn.pixabay.com/download/audio/2022/03/09/audio_7c82b0d33b.mp3?filename=magic-sparkle-143004.mp3" type="audio/mpeg"></audio>
+<audio id="sfxSuccess"><source src="https://cdn.pixabay.com/download/audio/2022/03/09/audio_9a375d35d9.mp3?filename=magic-spell-143010.mp3" type="audio/mpeg"></audio>
+<audio id="sfxFail"><source src="https://cdn.pixabay.com/download/audio/2022/03/09/audio_3e0652bb20.mp3?filename=magic-reverse-143009.mp3" type="audio/mpeg"></audio>
+
+<script>
+/* =================== AUDIO =================== */
+const bgm = document.getElementById('bgm');
+const sfx = {
+  click: document.getElementById('sfxClick'),
+  reveal: document.getElementById('sfxReveal'),
+  success: document.getElementById('sfxSuccess'),
+  fail: document.getElementById('sfxFail'),
+};
+function playSfx(a){ try{ sfx[a].currentTime=0; sfx[a].play(); }catch(e){} }
+function safeBgm(){ bgm.volume=.5; bgm.play().catch(()=>{}); }
+// Sonido click global
+document.addEventListener('click', (e)=>{
+  if(e.target.classList.contains('btn') || e.target.classList.contains('poi')) playSfx('click');
+});
+
+/* =================== DATOS =================== */
+const personajesInfo = {
+  "Espadachín":   { portrait: "imagenes/espadachin.png", color:"#b87333" },
+  "Curandero":    { portrait: "imagenes/curandero.png", color:"#2e8b57" },
+  "Cocinero":     { portrait: "imagenes/chef.png", color:"#d2691e" },
+  "Bibliotecaria":{ portrait: "imagenes/bibliotecaria.png", color:"#6a5acd" },
+  "Bufón":        { portrait: "imagenes/bufon.png", color:"#ff7043" },
+};
+const personajes = Object.keys(personajesInfo);
+const armas = [
+  { nombre:"Espada", pista:"Hay MUCHA sangre esparcida por el suelo." },
+  { nombre:"Veneno", pista:"El aire vibra con magia tóxica." },
+  { nombre:"Cuchillo de Carnicero", pista:"Solo un poco de sangre seca y restos de grasa." },
+  { nombre:"Conjuro de Muerte", pista:"Un rastro arcano flota en el aire, tenue pero oscuro." },
+  { nombre:"Daga del Dragón", pista:"Rastros leves de sangre y magia a la vez." },
+];
+const lugares = ["Cuarto del Rey","Cocina Real","Biblioteca","Pasillo del Castillo","Laboratorio"];
+const personajePorSala = {
+  "Cuarto del Rey": "Espadachín",
+  "Cocina Real": "Cocinero",
+  "Biblioteca": "Bibliotecaria",
+  "Pasillo del Castillo": "Bufón",
+  "Laboratorio": "Curandero",
+};
+
+/* =================== ESTADO =================== */
+let asesino, arma, lugar;
+let pistas = [];
+let visitadas = [];
+let seleccion = { personaje:"", arma:"", lugar:"" };
+
+/* =================== UI ELEMENTOS =================== */
+const menuPrincipal = document.getElementById('menuPrincipal');
+const credits = document.getElementById('credits');
+const contenido = document.getElementById('contenido');
+const logBox = document.getElementById('log');
+const portraitImg = document.getElementById('portraitImg');
+const nameplate = document.getElementById('nameplate');
+const mapPanel = document.getElementById('mapPanel');
+
+/* =================== TEXTO: MÁQUINA DE ESCRIBIR =================== */
+async function typeLine(text, speed=22){
+  return new Promise(resolve=>{
+    const line = document.createElement('div');
+    line.className='line';
+    logBox.appendChild(line);
+    let i=0;
+    const timer = setInterval(()=>{
+      line.textContent = text.slice(0, ++i);
+      logBox.scrollTop = logBox.scrollHeight;
+      if(i>=text.length){ clearInterval(timer); resolve(); }
+    }, speed);
+  });
+}
+async function say(text){ await typeLine(text); }
+function clearLog(){ logBox.innerHTML=""; }
+
+/* =================== LÓGICA =================== */
+function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+function generarCaso(){
+  asesino = rand(personajes);
+  arma = rand(armas);
+  lugar = rand(lugares);
+}
+
+function setPortrait(charName){
+  const info = personajesInfo[charName];
+  portraitImg.src = info?.portrait || "https://placehold.co/300x400/000/FFF?text=????";
+  nameplate.textContent = charName || "—";
+  nameplate.style.color = info?.color || "#f0e6d2";
+}
+
+/* ====== MAPA ====== */
+function bindMapClicks(){
+  const points = mapPanel.querySelectorAll('.poi');
+  points.forEach(p=>{
+    p.onclick = ()=>{
+      const sala = p.getAttribute('data-sala');
+      if(visitadas.includes(sala)) return;
+      investigarSala(sala);
+    };
+  });
+}
+function refreshMapVisited(){
+  const points = mapPanel.querySelectorAll('.poi');
+  points.forEach(p=>{
+    const sala = p.getAttribute('data-sala');
+    if(visitadas.includes(sala)){
+      p.classList.add('visited');
+      p.style.pointerEvents = 'none';
+      p.style.opacity = .75;
+    } else {
+      p.classList.remove('visited');
+      p.style.pointerEvents = 'auto';
+      p.style.opacity = 1;
+    }
+  });
+}
+
+/* ====== MENÚES ====== */
+function enableActions(){
+  document.getElementById('btnPistas').onclick = ()=> verPistas();
+  document.getElementById('btnAcusar').onclick = ()=> acusar();
+  document.getElementById('btnReiniciar').onclick = ()=> {
+  playSfx('click');
+  location.reload();
+};
+
+}
+
+/* ====== ACCIONES ====== */
+async function investigarSala(sala){
+  clearLog();
+  if(!visitadas.includes(sala)) visitadas.push(sala);
+  refreshMapVisited();
+
+  const charHere = personajePorSala[sala];
+  setPortrait(charHere);
+  playSfx('reveal');
+
+  await say(`🏰 Te adentras en el ${sala}...`);
+  if(sala===lugar){
+    await say("🔍 Las evidencias son contundentes: esta es la escena del crimen.");
+    await say(arma.pista);
+  }else{
+    await say("Solo hallas indicios menores, pero la energía es inestable...");
+  }
+  const p = `${rand(personajes)} fue visto cerca del ${sala}.`;
+  await say(p);
+  pistas.push(p);
+
+  if(visitadas.length===lugares.length){
+    await say("Has investigado todo el castillo. Puedes proceder a la acusación.");
+  }
+}
+
+async function verPistas(){
+  clearLog();
+  if(!pistas.length){ await say("Aún no has reunido pistas."); return; }
+  await say("📜 Tus pistas:");
+  for(const p of pistas) await say("- " + p);
+}
+
+function acusar(){
+  clearLog(); setPortrait("—");
+  // Paso 1: personaje
+  (async ()=>{
+    await say("¿A quién acusas?");
+    // temporal: botones bajo el log (para fluidez)
+    const wrap = document.createElement('div'); wrap.className='row-center';
+    personajes.forEach(p=>{
+      const b = document.createElement('button');
+      b.className='btn'; b.textContent = p;
+      b.onclick=()=>{ seleccion.personaje=p; elegirArma(); wrap.remove(); };
+      wrap.appendChild(b);
+    });
+    logBox.parentNode.insertBefore(wrap, logBox.nextSibling);
+  })();
+}
+
+function elegirArma(){
+  clearLog(); setPortrait(seleccion.personaje);
+  (async ()=>{
+    await say("¿Qué arma crees que usó?");
+    const wrap = document.createElement('div'); wrap.className='row-center';
+    armas.forEach(a=>{
+      const b = document.createElement('button');
+      b.className='btn'; b.textContent = a.nombre;
+      b.onclick=()=>{ seleccion.arma=a.nombre; elegirLugar(); wrap.remove(); };
+      wrap.appendChild(b);
+    });
+    logBox.parentNode.insertBefore(wrap, logBox.nextSibling);
+  })();
+}
+
+function elegirLugar(){
+  clearLog();
+  (async ()=>{
+    await say("¿Dónde ocurrió el crimen?");
+    const wrap = document.createElement('div'); wrap.className='row-center';
+    lugares.forEach(l=>{
+      const b = document.createElement('button');
+      b.className='btn'; b.textContent = l;
+      b.onclick=()=>{ seleccion.lugar=l; verificar(); wrap.remove(); };
+      wrap.appendChild(b);
+    });
+    logBox.parentNode.insertBefore(wrap, logBox.nextSibling);
+  })();
+}
+
+/* ====== FINALES ====== */
+const finales = {
+  "Espadachín": (arma, lugar) => `
+Mientras el rey se arrodillaba ante su verdugo, el Espadachín observó en silencio.<br>
+Mientras nadie miraba usó <b>${arma}</b> en <b>${lugar}</b>.<br>
+“El honor exige justicia”, susurró con frialdad.<br>
+Durante años juró proteger al reino, pero el rey lo corrompió con mentiras.<br>
+En esa noche, su espada limpió la vergüenza con sangre.<br>
+El eco del acero fue su despedida.
+`,
+
+  "Curandero": (arma, lugar) => `
+Mientras preparaban los brebajes del festín, el Curandero sonreía con calma.<br>
+Mientras nadie miraba usó <b>${arma}</b> en <b>${lugar}</b>.<br>
+“Solo quise sanar al mundo… a mi manera.”<br>
+Durante años fue ignorado, su ciencia tachada de herejía.<br>
+Esa noche, su veneno fue la cura definitiva.<br>
+La mezcla burbujeó, como riéndose con él.
+`,
+
+  "Cocinero": (arma, lugar) => `
+Mientras los invitados reían ante el banquete, el Chef ocultaba su furia tras la sonrisa.<br>
+Mientras nadie miraba usó <b>${arma}</b> en <b>${lugar}</b>.<br>
+“El sabor de la venganza… es exquisito.”<br>
+Durante años sirvió a quienes despreciaban su arte.<br>
+Esa noche, su plato principal fue el pecado del rey.<br>
+El cuchillo brilló bajo el fuego de las velas.
+`,
+
+  "Bibliotecaria": (arma, lugar) => `
+Mientras el castillo dormía, la Bibliotecaria recitaba palabras prohibidas.<br>
+Mientras nadie miraba usó <b>${arma}</b> en <b>${lugar}</b>.<br>
+“El conocimiento no se esconde… se protege.”<br>
+Descubrió los secretos del rey entre páginas malditas.<br>
+Esa noche, su conjuro selló la verdad con muerte.<br>
+Las velas se apagaron y el silencio escribió el final.
+`,
+
+  "Bufón": (arma, lugar) => `
+Mientras el rey reía ante su última broma, el Bufón también sonreía…<br>
+Mientras nadie miraba usó <b>${arma}</b> en <b>${lugar}</b>.<br>
+“¿Quién ríe ahora, mi señor?” murmuró con voz quebrada.<br>
+Durante años fue el juguete del reino, el chiste de todos.<br>
+Pero en esa noche, su carcajada fue la más fuerte, la más sincera… y la última.<br>
+La música calló. El espectáculo había terminado.
+`
+};
+
+async function verificar(){
+  clearLog();
+  const ok = (seleccion.personaje===asesino && seleccion.arma===arma.nombre && seleccion.lugar===lugar);
+if(ok){
+  playSfx('success');
+  await say("🎉 ¡Correcto! Has resuelto el misterio.");
+  await say(`La verdad: ${asesino}, con ${arma.nombre}, en ${lugar}.`);
+  
+  // Mostrar historia del asesino
+  const historia = finales[asesino](arma.nombre, lugar);
+  logBox.innerHTML += `<br><br><div class='panel' style='background:rgba(0,0,0,.6); border:1px solid gold; padding:14px; font-size:1.1em; line-height:1.6em;'>${historia}</div>`;
+  
+} else {
+  playSfx('fail');
+  await say("❌ Tu deducción fue incorrecta…");
+  await say(`La verdad: ${asesino}, con ${arma.nombre}, en ${lugar}.`);
+}
+
+
+ const again = document.createElement('div');
+again.className = 'row-center';
+
+const b = document.createElement('button');
+b.className = 'btn';
+b.textContent = "Jugar de nuevo";
+
+// Recargar la página completa
+b.onclick = () => {
+  playSfx('click');
+  location.reload();
+};
+
+again.appendChild(b);
+logBox.parentNode.insertBefore(again, logBox.nextSibling);
+
+}
+
+/* ====== ARRANQUE ====== */
+function startGame(){
+  // mostrar juego / ocultar menú
+  menuPrincipal.style.display='none';
+  credits.style.display='none';
+  contenido.style.display='block';
+
+  // reset
+  clearLog(); pistas=[]; visitadas=[]; seleccion={personaje:"", arma:"", lugar:""};
+  generarCaso();
+  setPortrait("—");
+  refreshMapVisited();
+  enableActions();
+  safeBgm();
+
+  (async ()=>{
+    await say("🌙 Es de noche en el castillo. El rey yace sin vida.");
+    await say("Tu misión: deducir quién lo asesinó, con qué arma y dónde.");
+    await say("Haz clic en el mapa de pergamino para investigar las salas.");
+  })();
+}
+
+// Menú principal
+document.getElementById('btnJugar').onclick = ()=> startGame();
+document.getElementById('btnCred').onclick = ()=> credits.style.display='block';
+document.getElementById('btnVolver').onclick = ()=> credits.style.display='none';
+document.getElementById('btnSalir').onclick = ()=> { alert("Gracias por jugar ✨"); window.close(); };
+
+// Activar mapa
+bindMapClicks();
+</script>
+</body>
+</html>
